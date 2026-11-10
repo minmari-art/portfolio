@@ -550,7 +550,7 @@ h3 {
 .cta {
   /* medidas em vw a partir do Home Layout (1366px), para escalar igual em qualquer tela */
   --tw: 36.6vw;                          /* tamanho dos tubarões */
-  --aw: clamp(80px, 11vw, 300px);      /* largura dos asteriscos */
+  --aw: clamp(64px, 11vw, 300px);      /* largura dos asteriscos */
   position: relative;
   background: var(--dark);
   color: var(--green);
@@ -598,10 +598,20 @@ h3 {
   top: calc(var(--aw) * -.5);
 }
 
+.cta__action {
+  position: relative;
+  display: inline-block;
+  z-index: 2;
+}
+
+/* Asterisco de baixo: preso ao BOTÃO (não ao fundo da faixa), por isso fica no mesmo lugar em qualquer tela:
+   centro na linha de cima do botão, 27vw à direita do centro, por cima do tubarão.
+   O max() impede que ele encoste no botão em telas estreitas. */
 .ast--cta-br {
   width: var(--aw);
-  right: 17.5vw;
-  bottom: calc(var(--aw) * .10);
+  top: 0;
+  left: max(calc(50% + 27vw), calc(100% + var(--aw) * .5));
+  margin: calc(var(--aw) / -2) 0 0 calc(var(--aw) / -2);   /* centraliza sem usar transform (o balanço usa rotate) */
   z-index: 3;
 }
 
@@ -1295,14 +1305,21 @@ html.menu-open { overflow: hidden; }
    ========================================================== */
 .feedbacks .marquee__track { align-items: stretch; }   /* todos os cards com a mesma altura */
 
+/* Desktop: a janela do carrossel tem exatamente a largura de 3 cards (o JS define --fb-view),
+   então nenhum pedaço do card vizinho aparece nas bordas. No celular a variável não existe e vale 100%. */
+.marquee--works {
+  width: var(--fb-view, 100%);
+  margin-inline: auto;
+}
+
 .fb {
   position: relative;
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 18px;
-  width: min(440px, 82vw);
-  margin-right: 40px;
+  width: var(--fb-w, min(440px, 82vw));
+  margin-right: var(--fb-gap, 40px);
   padding: 28px 30px 26px;
   border-radius: 14px;
   background: var(--dark);
@@ -1416,5 +1433,95 @@ html.menu-open { overflow: hidden; }
 }
 
 @media (max-width: 600px) {
-  .fb { margin-right: 20px; padding: 22px 22px 20px; }
+  .fb { padding: 22px 22px 20px; }
+}
+
+
+/* ==========================================================
+   Tablet e celular: tudo centralizado
+   ========================================================== */
+@media (max-width: 1000px) {
+  /* Hero: o texto tinha um deslocamento de 5% (do desktop) que o empurrava para a direita */
+  .hero__text {
+    left: 0;
+    top: 0;
+    text-align: center;
+  }
+
+  /* Câmera: sempre dentro da coluna e no centro (antes passava da largura e saía do eixo) */
+  .hero__camera {
+    width: min(100%, 720px);
+    max-width: 100%;
+    margin: 10px 0 0;
+    justify-self: center;
+    top: 0;
+    left: var(--cam-dx, .7%);   /* o script mede o corpo da câmera e corrige o desvio do PNG */
+  }
+
+  /* Notebook: o PNG tem mais margem transparente de um lado; compensa para o desenho ficar no centro */
+  .about__notebook {
+    transform: translateX(2.26%);
+  }
+
+  /* Título dos feedbacks centralizado */
+  .works__title {
+    text-align: center;
+  }
+
+  /* Feedbacks: um card por vez, no centro da tela. Largura e espaço entre os cards vêm do script (--fb-w / --fb-gap):
+     o card ocupa quase a largura da tela e o vizinho começa exatamente na borda, sem vazio no meio. */
+  .fb:hover {
+    transform: none;   /* sem "pulo" no toque, que desalinhava o card */
+  }
+}
+
+
+/* ==========================================================
+   Rodapé (CTA) em tablet e celular: mesma composição do desktop, só que menor.
+   Regra do desktop: o tubarão começa no topo da faixa e a cabeça dele fica cortada pela metade embaixo.
+   Aqui o tubarão é preso ao FUNDO da faixa (top = 100% - tamanho x --cut), então a cabeça fica cortada
+   do mesmo jeito em qualquer largura, mesmo que a faixa cresça ou encolha.
+   Ajuste fino: --cut maior = mostra mais da cabeça; menor = corta mais.
+   ========================================================== */
+@media (max-width: 1000px) {
+  .cta {
+    --tw: 46vw;                                  /* tubarões maiores que no desktop, para a faixa baixa ficar proporcional */
+    --cut: .82;                                  /* maior = tubarão sobe e mostra mais da cabeça */
+    min-height: calc(var(--tw) * .765);          /* altura mínima da faixa (a mesma proporção do desktop) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: max(28px, 5.2vw) 20px max(16px, 3vw);
+  }
+
+  .cta h2 {
+    font-size: max(14px, 4.5vw);                 /* menor que antes (6.2vw): sobra espaço para os tubarões */
+    margin: 0 auto 2.4vw;
+  }
+
+  /* botão menor, para dar respiro entre o floco, o título e o botão */
+  .cta .btn {
+    font-size: clamp(.8rem, 2.3vw, 1.15rem);
+    padding: .6em 1em;
+  }
+
+  /* floco de cima: como no desktop, o CENTRO dele fica em cima da linha da faixa (metade para fora, metade para dentro).
+     Um pouco menor e mais à esquerda que no desktop, para não encostar no "Bora". */
+  .ast--cta-tl {
+    --a: clamp(56px, 9vw, 300px);
+    width: var(--a);
+    left: calc(13vw - var(--a) / 2);
+    top: calc(var(--a) / -2);
+  }
+
+  /* floco de baixo: um pouco mais alto (entre o "na" e a cabeça do tubarão) e um pouco mais à direita, sem colar no texto */
+  .ast--cta-br {
+    margin-top: calc(var(--aw) / -2 - var(--aw) * .28);
+    left: max(calc(50% + 28.5vw), calc(100% + var(--aw) * .5));
+  }
+
+  .tail {
+    top: calc(100% - var(--tw) * var(--cut));
+  }
 }
