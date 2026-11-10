@@ -1,4 +1,7 @@
-/* Carrosséis contínuos (empresas e trabalhos) */
+/* Carrosséis (empresas e feedbacks)
+   - Empresas e feedbacks no desktop (acima de 1000px): deslizam livremente, sem parar
+     (o mouse em cima freia; as setas empurram o carrossel um card).
+   - Feedbacks em tablet e celular: um card por vez, sempre centralizado e colado no vizinho. */
 function createMarquee(root, opts = {}) {
   const track = root.querySelector('.marquee__track');
   const originals = [...track.children];
@@ -7,7 +10,39 @@ function createMarquee(root, opts = {}) {
   let setW = 0, x = 0, pending = 0, paused = false, last = performance.now();
   let rate = 1;   // 1 = velocidade normal, 0 = parado; muda aos poucos para frear/acelerar com suavidade
 
+  const wantsSnap = root.classList.contains('marquee--works');
+  const mqSnap = matchMedia('(max-width: 1000px)');
+  const snapOn = () => wantsSnap && mqSnap.matches;
+  let idx = 0, wasSnap = false;
+
+  // Modo um-card-por-vez: largura do card e espaço entre cards. O card ocupa quase a largura da tela e o
+  // próximo começa exatamente na borda (sem vazio no meio e sem aparecer pedaço do vizinho).
+  // Fora desse modo as variáveis são removidas e valem os tamanhos normais do CSS.
+  function size() {
+    if (!wantsSnap) return;
+    const vars = ['--fb-w', '--fb-gap', '--fb-view'];
+    if (!snapOn()) { vars.forEach(v => root.style.removeProperty(v)); return; }
+    const rootW = root.clientWidth;
+    if (!rootW) return;
+    const set = (k, v) => { if (root.style.getPropertyValue(k) !== v) root.style.setProperty(k, v); };
+    const m = Math.min(32, Math.max(18, rootW * 0.03));        // margem lateral do card
+    const cardW = Math.floor(rootW - 2 * m);
+    set('--fb-w', cardW + 'px');
+    set('--fb-gap', ((rootW - cardW) / 2).toFixed(2) + 'px');   // gap = margem: o vizinho começa na borda da tela
+  }
+
+  // posição (x) em que o card i fica exatamente no centro da área visível
+  function cardPos(i) {
+    const n = originals.length;
+    const el = originals[((i % n) + n) % n];
+    const left = el.offsetLeft - originals[0].offsetLeft + Math.floor(i / n) * setW;
+    return left - (root.offsetWidth - el.offsetWidth) / 2;
+  }
+
+  function go(dir) { idx += dir; }
+
   function build() {
+    size();
     track.querySelectorAll('[data-clone]').forEach(n => n.remove());
     const first = originals[0], lastEl = originals[originals.length - 1];
     const mr = parseFloat(getComputedStyle(lastEl).marginRight) || 0;
@@ -23,10 +58,20 @@ function createMarquee(root, opts = {}) {
         track.appendChild(k);
       });
     }
+    if (snapOn()) x = cardPos(idx);   // depois de recalcular (ex.: girar o celular), mantém o card centralizado
   }
 
   function frame(now) {
     const dt = Math.min((now - last) / 1000, 0.05); last = now;
+    if (snapOn() && setW) {
+      if (!wasSnap) { wasSnap = true; x = cardPos(idx); }                 // entrou no modo celular: centraliza já
+      x += (cardPos(idx) - x) * Math.min(1, dt * 6);                      // desliza suave até o centro do próximo card
+      const shown = ((x % setW) + setW) % setW;
+      track.style.transform = `translate3d(${-shown}px,0,0)`;
+      requestAnimationFrame(frame);
+      return;
+    }
+    wasSnap = false;
     rate += ((paused || reduce ? 0 : 1) - rate) * Math.min(1, dt * 4);   // desacelera ao passar o mouse e retoma devagar ao sair
     if (rate < 0.001) rate = 0;
     x += speed * rate * dt;
@@ -39,18 +84,34 @@ function createMarquee(root, opts = {}) {
 
   build();
   addEventListener('load', build);
-  new ResizeObserver(build).observe(root);
+  new ResizeObserver(build).observe(wantsSnap ? root.parentElement : root);
+  mqSnap.addEventListener('change', build);
   requestAnimationFrame(frame);
 
-  root.addEventListener('mouseenter', () => paused = true);
-  root.addEventListener('mouseleave', () => paused = false);
-  root.addEventListener('focusin', () => paused = true);
-  root.addEventListener('focusout', () => paused = false);
-  root.addEventListener('touchstart', () => paused = true, { passive: true });
-  root.addEventListener('touchend', () => setTimeout(() => paused = false, 1200), { passive: true });
+  // no celular o "mouse" simulado pelo toque deixaria o carrossel preso; por isso só vale fora do modo celular
+  root.addEventListener('mouseenter', () => { if (!snapOn()) paused = true; });
+  root.addEventListener('mouseleave', () => { if (!snapOn()) paused = false; });
+  root.addEventListener('focusin', () => { if (!snapOn()) paused = true; });
+  root.addEventListener('focusout', () => { if (!snapOn()) paused = false; });
+  let touchX = null;
+  root.addEventListener('touchstart', e => { paused = true; touchX = e.touches[0].clientX; }, { passive: true });
+  root.addEventListener('touchend', e => {
+    if (snapOn() && touchX !== null) {                     // arrastar para o lado troca de card
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+    }
+    touchX = null;
+    setTimeout(() => paused = false, 1200);
+  }, { passive: true });
+
+  // passa sozinho de um card para o outro (só no modo celular)
+  if (wantsSnap && !reduce) {
+    setInterval(() => { if (snapOn() && !paused) go(1); }, 4000);
+  }
 
   return {
     nudge(dir) {
+      if (snapOn()) { go(dir); return; }
       const card = originals[0];
       const mr = parseFloat(getComputedStyle(card).marginRight) || 0;
       pending += dir * (card.offsetWidth + mr);
@@ -66,10 +127,57 @@ document.querySelectorAll('.marquee').forEach(el => {
   }
 });
 
+/* Câmera do topo (tablet e celular): o PNG tem asteriscos de um lado só, então o desenho nunca fica
+   exatamente no meio da imagem. Aqui medimos onde está o CORPO da câmera (pixels escuros, ignorando os
+   asteriscos coloridos) e deslocamos a imagem para esse corpo ficar no centro da tela, em qualquer largura.
+   Precisa de servidor (Live Server); em file:// o CSS usa o valor reserva (--cam-dx). */
+(function () {
+  const cam = document.querySelector('.hero__camera');
+  if (!cam) return;
+  let frac;   // posição do centro do corpo da câmera, de 0 a 1 (0.5 = centro da imagem)
+
+  function measure() {
+    try {
+      const k = Math.min(1, 400 / Math.max(cam.naturalWidth, cam.naturalHeight));
+      const W = Math.max(1, Math.round(cam.naturalWidth * k)), H = Math.max(1, Math.round(cam.naturalHeight * k));
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(cam, 0, 0, W, H);
+      const d = ctx.getImageData(0, 0, W, H).data;
+      const need = Math.max(3, H * 0.03);
+      let x0 = -1, x1 = -1;
+      for (let x = 0; x < W; x++) {
+        let n = 0;
+        for (let y = 0; y < H; y++) {
+          const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+          if (d[i + 3] > 200 && r < 110 && g < 110 && b < 110 && Math.max(r, g, b) - Math.min(r, g, b) < 40) n++;
+        }
+        if (n >= need) { if (x0 < 0) x0 = x; x1 = x; }
+      }
+      return x0 >= 0 ? (x0 + x1 + 1) / 2 / W : null;
+    } catch (e) { return null; }   // file:// ou imagem bloqueada
+  }
+
+  function apply() {
+    if (!cam.complete || !cam.naturalWidth) return;
+    if (frac === undefined) frac = measure();
+    if (frac == null) return;
+    cam.style.setProperty('--cam-dx', ((0.5 - frac) * cam.offsetWidth).toFixed(1) + 'px');
+  }
+
+  if (cam.complete) apply(); else cam.addEventListener('load', apply, { once: true });
+  addEventListener('load', apply);
+  new ResizeObserver(apply).observe(cam);
+})();
+
+
 /* Destaque do item ativo do menu ao rolar */
+/* Só links internos (#...) entram no mapa: o link do WhatsApp (e os links completos do site no ar)
+   não são seletores válidos e quebravam o script inteiro nesta linha (por isso o menu lateral nunca aparecia).
+   Se o menu só tiver links completos, não há destaque por rolagem e nada é registrado. */
 const links = [...document.querySelectorAll('.nav a')];
-const map = links.map(a => [a, document.querySelector(a.getAttribute('href'))]);
-addEventListener('scroll', () => {
+const map = links.filter(a => (a.getAttribute('href') || '').startsWith('#')).map(a => [a, document.querySelector(a.getAttribute('href'))]);
+if (map.length) addEventListener('scroll', () => {
   const y = scrollY + innerHeight * 0.35;
   let active = map[0];
   map.forEach(p => { if (p[1] && p[1].offsetTop <= y) active = p; });
@@ -329,5 +437,5 @@ new MutationObserver(trimAll).observe(document.body, { childList: true, subtree:
 
 
 const msg = "Olá Min, vim pelo seu portfólio! Gostaria de mais informações.";
-document.getElementById("zap").href =
-  "https://wa.me/5511965270351?text=" + encodeURIComponent(msg);
+const zap = document.getElementById("zap");
+if (zap) zap.href = "https://wa.me/5511965270351?text=" + encodeURIComponent(msg);
