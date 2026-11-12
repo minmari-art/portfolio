@@ -1485,43 +1485,40 @@ html.menu-open { overflow: hidden; }
    ========================================================== */
 @media (max-width: 1000px) {
   .cta {
-    --tw: 46vw;                                  /* tubarões maiores que no desktop, para a faixa baixa ficar proporcional */
-    --cut: .82;                                  /* maior = tubarão sobe e mostra mais da cabeça */
-    min-height: calc(var(--tw) * .765);          /* altura mínima da faixa (a mesma proporção do desktop) */
+    --tw: 40vw;                                          /* tamanho dos tubarões (antes 46vw) */
+    --gap: clamp(26px, 7.2vw, 76px);                     /* quanto o rabo "afunda" a partir do topo da faixa */
+    min-height: calc(var(--gap) + var(--tw) * .765);     /* mesma proporção do desktop: cabeça cortada pela metade embaixo */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: max(28px, 5.2vw) 20px max(16px, 3vw);
+    padding: max(44px, 8vw) 20px max(28px, 5vw);
   }
 
   .cta h2 {
-    font-size: max(14px, 4.5vw);                 /* menor que antes (6.2vw): sobra espaço para os tubarões */
-    margin: 0 auto 2.4vw;
+    font-size: max(14px, 4.6vw);
+    margin: 0 auto max(16px, 3.2vw);
   }
 
-  /* botão menor, para dar respiro entre o floco, o título e o botão */
   .cta .btn {
     font-size: clamp(.8rem, 2.3vw, 1.15rem);
     padding: .6em 1em;
   }
 
-  /* floco de cima: como no desktop, o CENTRO dele fica em cima da linha da faixa (metade para fora, metade para dentro).
-     Um pouco menor e mais à esquerda que no desktop, para não encostar no "Bora". */
   .ast--cta-tl {
     --a: clamp(56px, 9vw, 300px);
     width: var(--a);
     left: calc(13vw - var(--a) / 2);
-    top: calc(var(--a) / -2);
+    top: calc(var(--a) / -2 + var(--gap));   /* desce junto com o rabo (mesmo --gap), ficando perto do tubarão */
   }
 
-  /* floco de baixo: um pouco mais alto (entre o "na" e a cabeça do tubarão) e um pouco mais à direita, sem colar no texto */
   .ast--cta-br {
     margin-top: calc(var(--aw) / -2 - var(--aw) * .28);
     left: max(calc(50% + 28.5vw), calc(100% + var(--aw) * .5));
   }
 
+  /* rabo afundado: começa abaixo do topo da faixa (não encosta), e o resto do tubarão desce e é cortado embaixo */
   .tail {
-    top: calc(100% - var(--tw) * var(--cut));
+    top: var(--gap);
   }
 }
