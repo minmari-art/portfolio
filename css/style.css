@@ -325,10 +325,14 @@ h3 {
   z-index: 2;
 }
 
+/* O notebook e o asterisco de trás dele ficam no mesmo bloco (.about__visual):
+   o asterisco é posicionado em % do notebook, então acompanha o notebook em qualquer tamanho de tela.
+   container-type permite usar cqw (1cqw = 1% da largura deste bloco). */
 .about__visual {
   position: relative;
   margin-top: -110px;
   margin-left: calc(-1 * var(--gutter) * .6);
+  container-type: inline-size;
 }
 
 .about__notebook {
@@ -370,23 +374,32 @@ h3 {
   z-index: 3;
 }
 
+/* Asterisco de trás do notebook: preso ao notebook (mesmas proporções em desktop, tablet e celular) */
 .ast--notebook {
-  width: 20%;
-  left: 54%;
-  top: 12%;
+  width: 19.95%;
+  left: 58.4%;
+  top: calc(50% + 1.96cqw);
+  transform: translate(-50%, -50%);
   z-index: 0;
 }
 
+/* Asteriscos do banner vermelho: tamanho e deslocamento em proporção à largura da tela (vw),
+   sem mínimo fixo, assim eles encolhem junto com a página e ficam sempre na mesma posição relativa. */
+.about {
+  --a: min(15vw, 200px);   /* largura dos asteriscos dos cantos */
+}
+
+/* Mesmas proporções do desktop (em vw), valendo para qualquer largura de tela */
 .ast--about-tr {
-  width: clamp(110px, 15vw, 200px);
-  right: -2%;
-  top: -95px;
+  width: var(--a);
+  right: -5.8vw;
+  top: calc(var(--a) * -.44);
 }
 
 .ast--about-bl {
-  width: clamp(90px, 10vw, 140px);
-  left: -1%;
-  bottom: -70px;
+  width: var(--a);
+  left: -6.5vw;
+  bottom: calc(var(--a) * -.455);
 }
 
 
@@ -727,28 +740,22 @@ h3 {
     padding-bottom: clamp(40px, 5.05vw, 92px);
   }
 
+  /* Bloco do notebook (notebook + asterisco de trás): posicionado em vw em relação à faixa vermelha,
+     sai da faixa para cima e para baixo. A posição do asterisco dentro dele vem da regra base. */
   .about__visual {
-    display: contents; /* notebook e asterisco passam a se posicionar em relação à faixa inteira */
-  }
-
-  /* left/top = centro do notebook visível; o translate compensa a margem transparente do PNG */
-  .about__notebook {
     position: absolute;
     width: 85.7vw;
-    left: 31.84vw;
+    left: -9.07vw;
     top: 21.92vw;
-    transform: translate(-47.74%, -50%);
+    margin: 0;
+    transform: translateY(-50%);
     z-index: 1;
     pointer-events: none;
   }
 
-  /* asterisco que aparece por trás do notebook */
-  .ast--notebook {
-    width: 17.1vw;
-    left: 41.14vw;
-    top: 23.6vw;
-    transform: translate(-51.1%, -50%);
-    z-index: 0;
+  .about__notebook {
+    width: 100%;
+    transform: none;
   }
 
   .about__text {
@@ -773,15 +780,11 @@ h3 {
   }
 
   .ast--about-tr {
-    width: clamp(110px, 15vw, 200px);
     right: -5.8vw;
-    top: -88px;
   }
 
   .ast--about-bl {
-    width: clamp(110px, 15vw, 200px);
     left: -6.5vw;
-    bottom: -91px;
   }
 }
 
@@ -845,7 +848,7 @@ h3 {
   }
 
   .about__visual {
-    margin: -90px auto 0;
+    margin: calc(-1 * min(14vw, 90px)) auto 0;   /* quanto o notebook sobe também acompanha a tela */
     width: min(100%, 640px);
   }
 
@@ -1459,7 +1462,8 @@ html.menu-open { overflow: hidden; }
   }
 
   /* Notebook: o PNG tem mais margem transparente de um lado; compensa para o desenho ficar no centro */
-  .about__notebook {
+  /* a correção vai no bloco todo (notebook + asterisco), assim o asterisco continua no mesmo ponto do notebook */
+  .about__visual {
     transform: translateX(2.26%);
   }
 
@@ -1520,5 +1524,15 @@ html.menu-open { overflow: hidden; }
   /* rabo afundado: começa abaixo do topo da faixa (não encosta), e o resto do tubarão desce e é cortado embaixo */
   .tail {
     top: var(--gap);
+  }
+}
+
+@media (max-width: 1000px) {
+  .ast--about-tr {
+    right: calc(var(--a) * -.440);
+  }
+
+  .ast--about-bl {
+    left: calc(var(--a) * -.510);
   }
 }
