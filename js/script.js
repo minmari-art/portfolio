@@ -6,6 +6,8 @@ function createMarquee(root, opts = {}) {
   const track = root.querySelector('.marquee__track');
   const originals = [...track.children];
   const speed = Number(root.dataset.speed) || 40;      // px por segundo
+  // Quem ativou "reduzir movimento" no sistema (comum no Windows com animações desligadas) antes via o carrossel
+  // parado. Agora ele continua andando, só mais devagar (metade da velocidade), para o conteúdo não ficar cortado.
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let setW = 0, x = 0, pending = 0, paused = false, last = performance.now();
   let rate = 1;   // 1 = velocidade normal, 0 = parado; muda aos poucos para frear/acelerar com suavidade
@@ -72,7 +74,7 @@ function createMarquee(root, opts = {}) {
       return;
     }
     wasSnap = false;
-    rate += ((paused || reduce ? 0 : 1) - rate) * Math.min(1, dt * 4);   // desacelera ao passar o mouse e retoma devagar ao sair
+    rate += ((paused ? 0 : (reduce ? 0.5 : 1)) - rate) * Math.min(1, dt * 4);   // desacelera ao passar o mouse e retoma devagar ao sair
     if (rate < 0.001) rate = 0;
     x += speed * rate * dt;
     const step = pending * 0.12; pending -= step; x += step;
@@ -105,8 +107,8 @@ function createMarquee(root, opts = {}) {
   }, { passive: true });
 
   // passa sozinho de um card para o outro (só no modo celular)
-  if (wantsSnap && !reduce) {
-    setInterval(() => { if (snapOn() && !paused) go(1); }, 4000);
+  if (wantsSnap) {
+    setInterval(() => { if (snapOn() && !paused) go(1); }, reduce ? 6000 : 4000);
   }
 
   return {
@@ -282,7 +284,7 @@ new MutationObserver(trimAll).observe(document.body, { childList: true, subtree:
     ['.cta .tail--l',      'left',  0,   0],
     ['.cta .tail--r',      'right', 0,   0],
     ['.cta h2',            'up',    0,   .1],
-    ['.cta .btn',          'up',    0,   .3],
+    ['.cta .btn',          'up',    0,   .1],
     ['.ast',               'zoom',  0,   .2]
   ];
 
@@ -318,9 +320,19 @@ new MutationObserver(trimAll).observe(document.body, { childList: true, subtree:
         el.style.removeProperty('--d');
       }, (d + 1.1) * 1000);
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+  }, { threshold: 0.1, rootMargin: matchMedia('(max-width: 1000px)').matches ? '0px' : '0px 0px -6% 0px' });
 
   items.forEach(([el]) => io.observe(el));
+
+  // Rede de segurança: ao chegar no fim da página, revela tudo o que ainda estiver escondido
+  // (o botão final fica colado no fundo da página e podia demorar ou nem aparecer no celular).
+  let fimChecado = false;
+  addEventListener('scroll', () => {
+    if (fimChecado) return;
+    if (innerHeight + scrollY < document.documentElement.scrollHeight - 4) return;
+    fimChecado = true;
+    items.forEach(([el]) => { if (el.hasAttribute('data-reveal') && !el.classList.contains('is-in')) el.classList.add('is-in'); });
+  }, { passive: true });
 })();
 
 
