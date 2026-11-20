@@ -1100,6 +1100,12 @@ h3 {
   }
 }
 
+/* A entrada ao rolar continua funcionando mesmo com "reduzir movimento" ativo no sistema
+   (sem isso o bloco acima zerava o tempo da animação e ela parecia não existir). */
+.js-reveal [data-reveal] {
+  transition-duration: .9s !important;
+}
+
 
 /* ==========================================================
    Menu lateral (sidebar)
