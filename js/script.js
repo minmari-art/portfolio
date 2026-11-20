@@ -266,7 +266,8 @@ new MutationObserver(trimAll).observe(document.body, { childList: true, subtree:
    Cada grupo = [seletor, tipo (up, down, left, right, zoom, fade), atraso entre itens, atraso inicial] em segundos.
    Se o visitante prefere menos movimento, nada é escondido nem animado. */
 (function () {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return;
+  // (antes a animação era cancelada para quem usa "reduzir movimento"; agora roda para todos)
+  if (!('IntersectionObserver' in window)) return;
 
   const groups = [
     ['.topbar > *',        'down',  .08, 0],
